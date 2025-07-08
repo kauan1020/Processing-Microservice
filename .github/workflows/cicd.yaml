@@ -101,7 +101,7 @@ jobs:
         fetch-depth: 0
 
     - name: SonarQube Scan
-      uses: sonarqube-quality-gate-action@master
+      uses: sonarqube-quality-gate-action/sonarqube-quality-gate-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
