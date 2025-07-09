@@ -74,7 +74,7 @@ jobs:
         KAFKA_BOOTSTRAP_SERVERS: localhost:9092
         APP_ENVIRONMENT: testing
       run: |
-        pytest test/ -v --cov --cov-report=xml --cov-report=html
+        pytest  -v --cov --cov-report=xml --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -95,12 +95,51 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+        aws-region: us-east-1
+
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --name fiap-x-dev --region us-east-1
+
+    - name: Get SonarQube URL
+      run: |
+        # Verificar se SonarQube está rodando no EKS
+        if kubectl get svc -n sonarqube sonarqube 2>/dev/null; then
+          # Port forward para acessar SonarQube
+          kubectl port-forward svc/sonarqube 9000:9000 -n sonarqube &
+          sleep 10
+          echo "SONAR_HOST_URL=http://localhost:9000" >> $GITHUB_ENV
+        else
+          echo "SonarQube service not found, skipping scan"
+          echo "SONAR_HOST_URL=" >> $GITHUB_ENV
+        fi
+
     - name: SonarQube Scan
-      if: env.SONAR_TOKEN != ''
+      if: env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != ''
       uses: SonarSource/sonarqube-scan-action@master
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+      with:
+        projectBaseDir: .
+        args: >
+          -Dsonar.projectKey=fiap-x-video-service
+          -Dsonar.projectName="FIAP X Video Service"
+          -Dsonar.projectVersion=1.0
+          -Dsonar.sources=.
+          -Dsonar.exclusions=**/*_test.py,**/**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+          -Dsonar.sourceEncoding=UTF-8
+          -Dsonar.python.version=3.11
+
+    - name: Stop port-forward
+      if: always()
+      run: pkill -f "kubectl port-forward" || true
 
   build-and-push:
     runs-on: ubuntu-latest
