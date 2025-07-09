@@ -74,7 +74,7 @@ jobs:
         KAFKA_BOOTSTRAP_SERVERS: localhost:9092
         APP_ENVIRONMENT: testing
       run: |
-        pytest  -v --cov --cov-report=xml --cov-report=html
+        pytest test -v --cov --cov-report=xml --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -132,7 +132,7 @@ jobs:
           -Dsonar.projectName="FIAP X Video Service"
           -Dsonar.projectVersion=1.0
           -Dsonar.sources=.
-          -Dsonar.exclusions=**/*_test.py,**/**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
+          -Dsonar.exclusions=**/*_test.py,**/test**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.sourceEncoding=UTF-8
           -Dsonar.python.version=3.11
@@ -170,11 +170,15 @@ jobs:
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
+        # Build e tag com SHA
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
 
   deploy:
     runs-on: ubuntu-latest
@@ -207,11 +211,19 @@ jobs:
         echo "REDIS_SECRET_ARN=$(terraform output -raw redis_secret_arn)" >> $GITHUB_ENV
         echo "AWS_ACCOUNT_ID=$(terraform output -raw aws_account_id)" >> $GITHUB_ENV
 
+    - name: Get Secret ARNs
+      run: |
+        echo "VIDEO_DB_SECRET_ARN=$(aws secretsmanager describe-secret --secret-id fiap-x-dev-video-db-credentials --query 'ARN' --output text)" >> $GITHUB_ENV
+        echo "REDIS_SECRET_ARN=$(aws secretsmanager describe-secret --secret-id fiap-x-dev-redis-secret --query 'ARN' --output text)" >> $GITHUB_ENV
+
     - name: Deploy to EKS
       env:
         IMAGE_URI: ${{ needs.build-and-push.outputs.image }}
       run: |
         cd infrastructure
+        echo "Deploying with image: $IMAGE_URI"
+        echo "VIDEO_DB_SECRET_ARN: $VIDEO_DB_SECRET_ARN"
+        echo "REDIS_SECRET_ARN: $REDIS_SECRET_ARN"
         envsubst < k8s/video-service/deployment.yaml | kubectl apply -f -
         kubectl rollout status deployment/video-service -n $NAMESPACE --timeout=300s
         kubectl get pods -n $NAMESPACE -l app=video-service
