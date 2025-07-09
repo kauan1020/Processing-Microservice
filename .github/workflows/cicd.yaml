@@ -74,7 +74,7 @@ jobs:
         KAFKA_BOOTSTRAP_SERVERS: localhost:9092
         APP_ENVIRONMENT: testing
       run: |
-        pytest tests/ -v --cov --cov-report=xml --cov-report=html
+        pytest test/ -v --cov --cov-report=xml --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
