@@ -627,7 +627,7 @@ async def main() -> None:
     settings = get_settings()
     print(f"Environment: {getattr(settings, 'environment', 'development')}")
     print(f"Database: {getattr(settings.database, 'host', 'localhost')}:{getattr(settings.database, 'port', 5432)}")
-    print(f"Kafka: {getattr(settings.kafka, 'bootstrap_servers', 'kafka-service:9092')}")
+    print(f"Kafka: {getattr(settings.kafka, 'bootstrap_servers', 'localhost:9092')}")
     print(f"Gmail: {getattr(settings.notification, 'gmail_email', '')}")
     print(f"Features: Connection Recovery, Health Monitoring, Performance Analysis")
     print("=" * 60)
