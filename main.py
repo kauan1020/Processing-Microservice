@@ -128,8 +128,8 @@ def create_application() -> FastAPI:
         description="FIAP X Video Processing Microservice for frame extraction from videos with distributed job processing",
         debug=settings.debug,
         lifespan=lifespan,
-        docs_url="/docs" if settings.debug else None,
-        redoc_url="/redoc" if settings.debug else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
     )
 
     app.add_middleware(
@@ -273,7 +273,7 @@ def create_application() -> FastAPI:
             "environment": settings.environment,
             "status": "running",
             "description": "Video processing microservice for frame extraction and job management",
-            "docs_url": "/docs" if settings.debug else None,
+            "docs_url": "/docs",
             "api_version": "v1"
         }
 
