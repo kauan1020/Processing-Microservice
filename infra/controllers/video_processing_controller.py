@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import logging
 from fastapi import UploadFile, HTTPException, status
 
 from use_cases.video_processing.submit_video_use_case import (
