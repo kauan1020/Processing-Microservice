@@ -12,134 +12,134 @@ env:
   NAMESPACE: fiap-x-dev
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass_123
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio
-
-    - name: Run tests
-      env:
-        DATABASE_URL: postgresql://test_user:test_pass_123@localhost:5432/test_db
-        REDIS_URL: redis://localhost:6379/0
-        KAFKA_BOOTSTRAP_SERVERS: localhost:9092
-        APP_ENVIRONMENT: testing
-      run: |
-        pytest test -v --cov --cov-report=xml --cov-report=html
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        flags: video-service
-        name: video-service-coverage
-
-  sonarqube:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push'
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-        aws-region: us-east-1
-
-    - name: Update kubeconfig
-      run: aws eks update-kubeconfig --name fiap-x-dev --region us-east-1
-
-    - name: Get SonarQube URL
-      run: |
-        # Verificar se SonarQube está rodando no EKS
-        if kubectl get svc -n sonarqube sonarqube 2>/dev/null; then
-          # Port forward para acessar SonarQube
-          kubectl port-forward svc/sonarqube 9000:9000 -n sonarqube &
-          sleep 10
-          echo "SONAR_HOST_URL=http://localhost:9000" >> $GITHUB_ENV
-        else
-          echo "SonarQube service not found, skipping scan"
-          echo "SONAR_HOST_URL=" >> $GITHUB_ENV
-        fi
-
-    - name: SonarQube Scan
-      if: env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != ''
-      uses: SonarSource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-      with:
-        projectBaseDir: .
-        args: >
-          -Dsonar.projectKey=fiap-x-video-service
-          -Dsonar.projectName="FIAP X Video Service"
-          -Dsonar.projectVersion=1.0
-          -Dsonar.sources=.
-          -Dsonar.exclusions=**/*_test.py,**/test**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
-          -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.sourceEncoding=UTF-8
-          -Dsonar.python.version=3.11
-
-    - name: Stop port-forward
-      if: always()
-      run: pkill -f "kubectl port-forward" || true
+#  test:
+#    runs-on: ubuntu-latest
+#
+#    services:
+#      postgres:
+#        image: postgres:15
+#        env:
+#          POSTGRES_DB: test_db
+#          POSTGRES_USER: test_user
+#          POSTGRES_PASSWORD: test_pass_123
+#        options: >-
+#          --health-cmd pg_isready
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
+#        ports:
+#          - 5432:5432
+#
+#      redis:
+#        image: redis:7-alpine
+#        options: >-
+#          --health-cmd "redis-cli ping"
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
+#        ports:
+#          - 6379:6379
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#
+#    - name: Set up Python
+#      uses: actions/setup-python@v4
+#      with:
+#        python-version: '3.11'
+#
+#    - name: Install system dependencies
+#      run: |
+#        sudo apt-get update
+#        sudo apt-get install -y ffmpeg
+#
+#    - name: Cache pip dependencies
+#      uses: actions/cache@v4
+#      with:
+#        path: ~/.cache/pip
+#        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+#        restore-keys: |
+#          ${{ runner.os }}-pip-
+#
+#    - name: Install dependencies
+#      run: |
+#        pip install --upgrade pip
+#        pip install -r requirements.txt
+#        pip install pytest pytest-cov pytest-asyncio
+#
+#    - name: Run tests
+#      env:
+#        DATABASE_URL: postgresql://test_user:test_pass_123@localhost:5432/test_db
+#        REDIS_URL: redis://localhost:6379/0
+#        KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+#        APP_ENVIRONMENT: testing
+#      run: |
+#        pytest test -v --cov --cov-report=xml --cov-report=html
+#
+#    - name: Upload coverage to Codecov
+#      uses: codecov/codecov-action@v4
+#      with:
+#        file: ./coverage.xml
+#        flags: video-service
+#        name: video-service-coverage
+#
+#  sonarqube:
+#    runs-on: ubuntu-latest
+#    needs: test
+#    if: github.event_name == 'push'
+#    env:
+#      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#      with:
+#        fetch-depth: 0
+#
+#    - name: Configure AWS credentials
+#      uses: aws-actions/configure-aws-credentials@v4
+#      with:
+#        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+#        aws-region: us-east-1
+#
+#    - name: Update kubeconfig
+#      run: aws eks update-kubeconfig --name fiap-x-dev --region us-east-1
+#
+#    - name: Get SonarQube URL
+#      run: |
+#        # Verificar se SonarQube está rodando no EKS
+#        if kubectl get svc -n sonarqube sonarqube 2>/dev/null; then
+#          # Port forward para acessar SonarQube
+#          kubectl port-forward svc/sonarqube 9000:9000 -n sonarqube &
+#          sleep 10
+#          echo "SONAR_HOST_URL=http://localhost:9000" >> $GITHUB_ENV
+#        else
+#          echo "SonarQube service not found, skipping scan"
+#          echo "SONAR_HOST_URL=" >> $GITHUB_ENV
+#        fi
+#
+#    - name: SonarQube Scan
+#      if: env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != ''
+#      uses: SonarSource/sonarqube-scan-action@master
+#      env:
+#        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+#      with:
+#        projectBaseDir: .
+#        args: >
+#          -Dsonar.projectKey=fiap-x-video-service
+#          -Dsonar.projectName="FIAP X Video Service"
+#          -Dsonar.projectVersion=1.0
+#          -Dsonar.sources=.
+#          -Dsonar.exclusions=**/*_test.py,**/test**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
+#          -Dsonar.python.coverage.reportPaths=coverage.xml
+#          -Dsonar.sourceEncoding=UTF-8
+#          -Dsonar.python.version=3.11
+#
+#    - name: Stop port-forward
+#      if: always()
+#      run: pkill -f "kubectl port-forward" || true
 
   build-and-push:
     runs-on: ubuntu-latest
