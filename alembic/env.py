@@ -29,11 +29,11 @@ target_metadata = Base.metadata
 
 def get_database_url():
     """Get database URL from environment variables."""
-    host = os.getenv("DATABASE_HOST", "localhost")
-    port = os.getenv("DATABASE_PORT", "5432")
-    name = os.getenv("DATABASE_NAME", "video_processing")
-    user = os.getenv("DATABASE_USER", "postgres")
-    password = os.getenv("DATABASE_PASSWORD", "password")
+    host = os.getenv("DATABASE_HOST")
+    port = os.getenv("DATABASE_PORT")
+    name = os.getenv("DATABASE_NAME")
+    user = os.getenv("DATABASE_USER")
+    password = os.getenv("DATABASE_PASSWORD")
 
     # For alembic, we need the synchronous driver
     return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
@@ -41,11 +41,11 @@ def get_database_url():
 
 def get_async_database_url():
     """Get async database URL from environment variables."""
-    host = os.getenv("DATABASE_HOST", "localhost")
-    port = os.getenv("DATABASE_PORT", "5432")
-    name = os.getenv("DATABASE_NAME", "video_processing")
-    user = os.getenv("DATABASE_USER", "postgres")
-    password = os.getenv("DATABASE_PASSWORD", "password")
+    host = os.getenv("DATABASE_HOST")
+    port = os.getenv("DATABASE_PORT")
+    name = os.getenv("DATABASE_NAME")
+    user = os.getenv("DATABASE_USER")
+    password = os.getenv("DATABASE_PASSWORD")
 
     return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{name}"
 
