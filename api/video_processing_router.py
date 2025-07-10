@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Response, Header
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -44,8 +46,8 @@ async def get_auth_gateway():
     global _auth_gateway
 
     if _auth_gateway is None:
-        settings = get_settings(
-        logging.info("[DEBUG] Instantiating AuthGateway with:", settings.auth.model_dump())
+        settings = get_settings()
+        print("[DEBUG] Instantiating AuthGateway with:", settings.auth.model_dump())
         _auth_gateway = AuthGateway(
             auth_service_url=settings.auth.service_url,
             timeout=settings.auth.timeout
