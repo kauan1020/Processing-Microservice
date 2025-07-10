@@ -123,10 +123,6 @@ Thumbs.db
 .coverage
 htmlcov/
 
-# Alembic
-alembic/versions/*.py
-!alembic/versions/README
-!alembic/versions/__init__.py
 
 # Application logs
 logs/
