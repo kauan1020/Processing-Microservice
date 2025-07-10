@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 from typing import List, Optional
+import os
+
+import os
 
 
 class DatabaseSettings(BaseSettings):
@@ -69,6 +72,7 @@ class KafkaSettings(BaseSettings):
 
     class Config:
         env_prefix = "KAFKA_"
+        case_sensitive = False
 
 
 class AuthSettings(BaseSettings):
@@ -158,20 +162,48 @@ class Settings(BaseSettings):
     workers: int = 1
     database_url: Optional[str] = None
 
-    database: DatabaseSettings = DatabaseSettings()
-    processing: ProcessingSettings = ProcessingSettings()
-    storage: StorageSettings = StorageSettings()
-    kafka: KafkaSettings = KafkaSettings()
-    auth: AuthSettings = AuthSettings()
-    user_service: UserServiceSettings = UserServiceSettings()
-    notification: NotificationSettings = NotificationSettings()
-    cors: CorsSettings = CorsSettings()
+    # IMPORTANTE: Não inicializar as sub-configurações aqui
+    database: DatabaseSettings = None
+    processing: ProcessingSettings = None
+    storage: StorageSettings = None
+    kafka: KafkaSettings = None
+    auth: AuthSettings = None
+    user_service: UserServiceSettings = None
+    notification: NotificationSettings = None
+    cors: CorsSettings = None
 
     def __init__(self, **kwargs):
         """Initialize settings with automatic database URL configuration if not provided."""
         super().__init__(**kwargs)
+
+        # Criar as sub-configurações DEPOIS de inicializar o Settings principal
+        # Isso permite que o Pydantic processe as variáveis de ambiente corretamente
+        self.database = DatabaseSettings()
+        self.processing = ProcessingSettings()
+        self.storage = StorageSettings()
+        self.kafka = KafkaSettings()
+        self.auth = AuthSettings()
+        self.user_service = UserServiceSettings()
+        self.notification = NotificationSettings()
+        self.cors = CorsSettings()
+
+        # Configurar database URL se necessário
         if not self.database_url and not self.database.url:
             self.database.url = f"postgresql+asyncpg://{self.database.user}:{self.database.password}@{self.database.host}:{self.database.port}/{self.database.name}"
+
+        # Override manual para garantir que as URLs sejam carregadas corretamente
+        # Isso é necessário porque algumas versões do Pydantic têm problemas com nested settings
+        auth_url = os.getenv('AUTH_SERVICE_URL')
+        if auth_url:
+            self.auth.service_url = auth_url
+
+        user_service_url = os.getenv('USER_SERVICE_SERVICE_URL')
+        if user_service_url:
+            self.user_service.service_url = user_service_url
+
+        notification_url = os.getenv('NOTIFICATION_SERVICE_URL')
+        if notification_url:
+            self.notification.service_url = notification_url
 
     class Config:
         env_prefix = "APP_"
@@ -179,6 +211,20 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 
+_settings = None
+
+
 def get_settings() -> Settings:
     """Get configured application settings instance with all environment variables loaded."""
-    return Settings()
+    global _settings
+    if _settings is None:
+        _settings = Settings()
+
+        if os.getenv('APP_DEBUG') == 'true':
+            print(f"Settings loaded:")
+            print(f"  Auth Service URL: {_settings.auth.service_url}")
+            print(f"  User Service URL: {_settings.user_service.service_url}")
+            print(f"  Database Host: {_settings.database.host}")
+            print(f"  Kafka Servers: {_settings.kafka.bootstrap_servers}")
+
+    return _settings
