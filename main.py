@@ -44,6 +44,8 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting FIAP X Video Processing Service")
 
     settings = get_settings()
+    logger.info("[DEBUG] AUTH SETTINGS:", settings.auth.model_dump())
+    logger.info("[DEBUG] USER_SERVICE SETTINGS:", settings.user_service.model_dump())
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Debug mode: {settings.debug}")
     logger.info(f"Database: {settings.database.host}:{settings.database.port}")

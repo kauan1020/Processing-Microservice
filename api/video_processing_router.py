@@ -44,7 +44,8 @@ async def get_auth_gateway():
     global _auth_gateway
 
     if _auth_gateway is None:
-        settings = get_settings()
+        settings = get_settings(
+        logging.info("[DEBUG] Instantiating AuthGateway with:", settings.auth.model_dump())
         _auth_gateway = AuthGateway(
             auth_service_url=settings.auth.service_url,
             timeout=settings.auth.timeout
