@@ -74,7 +74,7 @@ jobs:
         KAFKA_BOOTSTRAP_SERVERS: localhost:9092
         APP_ENVIRONMENT: testing
       run: |
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+        pytest test -v --cov --cov-report=xml --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -132,7 +132,7 @@ jobs:
           -Dsonar.projectName="FIAP X Video Service"
           -Dsonar.projectVersion=1.0
           -Dsonar.sources=.
-          -Dsonar.exclusions=**/*_test.py,**/tests/**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
+          -Dsonar.exclusions=**/*_test.py,**/test**,**/test_*,**/__pycache__/**,**/venv/**,**/.venv/**,**/migrations/**,**/static/**,**/templates/**
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.sourceEncoding=UTF-8
           -Dsonar.python.version=3.11
