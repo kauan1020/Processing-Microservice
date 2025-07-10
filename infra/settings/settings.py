@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import List, Optional
 
 
@@ -98,20 +99,28 @@ class UserServiceSettings(BaseSettings):
 
 
 class NotificationSettings(BaseSettings):
-    """Notification service configuration settings for email notifications via Gmail."""
-    service_url: str = "http://localhost:8003"
-    api_key: str = "dev-notification-key-123"
-    gmail_email: str = "kauan.silva@advolve.ai"
-    gmail_app_password: str = "fmzgjwyqgyrtxrxi"
-    from_email: str = "kauan.silva@advolve.ai"
-    from_name: str = "FIAP X Video Processing"
-    admin_emails: str = "kauan.silva@advolve.ai,support@fiapx.com"
-    retry_attempts: int = 3
-    timeout: int = 30
+    """Notification service configuration"""
+    service_url: str = Field(default="http://notification-service:8003", env="NOTIFICATION_SERVICE_URL")
+    api_key: Optional[str] = Field(default="", env="NOTIFICATION_API_KEY")
+
+    gmail_email: str = Field(default="", env="NOTIFICATION_GMAIL_EMAIL")
+    gmail_app_password: str = Field(default="", env="NOTIFICATION_GMAIL_APP_PASSWORD")
+    from_email: str = Field(default="", env="NOTIFICATION_FROM_EMAIL")
+    from_name: str = Field(default="FIAP X Video Processing", env="NOTIFICATION_FROM_NAME")
+    admin_emails: str = Field(default="", env="NOTIFICATION_ADMIN_EMAILS")
+
+    retry_attempts: int = Field(default=3, env="NOTIFICATION_RETRY_ATTEMPTS")
+    timeout: int = Field(default=30, env="NOTIFICATION_TIMEOUT")
+
+    class Config:
+        env_prefix = ""
+        case_sensitive = False
 
     def get_admin_emails_list(self) -> List[str]:
-        """Parse admin emails string into list of email addresses."""
-        return [email.strip() for email in self.admin_emails.split(',') if email.strip()]
+        """Convert comma-separated admin emails to list"""
+        if not self.admin_emails:
+            return []
+        return [email.strip() for email in self.admin_emails.split(",") if email.strip()]
 
     class Config:
         env_prefix = "NOTIFICATION_"
