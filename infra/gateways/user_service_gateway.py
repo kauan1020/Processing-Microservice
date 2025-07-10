@@ -62,29 +62,38 @@ class UserServiceGateway:
             url = f"{self.user_service_url}/users/profile"
             params = {"user_id": user_id}
 
+            self.logger.info(f"Calling user_service: {url} with params {params}")
+
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
                 async with session.get(url, params=params) as response:
+                    self.logger.info(f"Response status: {response.status}")
+                    text = await response.text()
+                    self.logger.info(f"Response text: {text}")
+
                     if response.status == 200:
-                        self._set_cache(cache_key, True)
-                        self.logger.info(f"User {user_id} verification: True")
-                        return True
+                        data = await response.json()
+                        self.logger.info(f"Parsed JSON: {data}")
+
+                        exists = (
+                                data.get("success") is True and
+                                data.get("data") is not None and
+                                data["data"].get("user") is not None
+                        )
+
+                        self._set_cache(cache_key, exists)
+                        self.logger.info(f"User {user_id} exists: {exists}")
+                        return exists
+
                     elif response.status == 404:
                         self._set_cache(cache_key, False)
-                        self.logger.info(f"User {user_id} not found")
                         return False
                     else:
-                        self.logger.warning(f"User service returned status {response.status}")
-                        if self._is_development():
-                            self.logger.info(f"Development mode: accepting user {user_id}")
-                            return True
-                        return True
+                        self.logger.warning(f"Unexpected status {response.status}")
+                        return False
 
-        except asyncio.TimeoutError:
-            self.logger.warning(f"Timeout verifying user {user_id}, assuming exists")
-            return True
         except Exception as e:
-            self.logger.warning(f"Error verifying user {user_id}: {str(e)}, assuming exists")
-            return True
+            self.logger.warning(f"Error verifying user {user_id}: {str(e)}")
+            return False
 
     async def get_user_info(self, user_id: str) -> Dict[str, Any]:
         cache_key = f"user_info_{user_id}"
