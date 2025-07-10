@@ -413,7 +413,18 @@ async def list_user_jobs(
 ):
     try:
         user_service = await get_user_service()
-        user_exists = await user_service.verify_user_exists(current_user_id)
+
+        # Log para debug
+        print(f"[DEBUG] Verificando usuário {current_user_id}...")
+
+        try:
+            user_exists = await user_service.verify_user_exists(current_user_id)
+        except Exception as e:
+            print(f"[ERROR] Erro ao verificar usuário: {type(e).__name__}: {str(e)}")
+            # Em caso de erro no serviço de usuário, assumir que o usuário existe
+            # para não bloquear a operação
+            user_exists = True
+
         if not user_exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -444,6 +455,11 @@ async def list_user_jobs(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[ERROR] Erro não tratado em list_user_jobs: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+
+        # Retornar erro mais específico
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={

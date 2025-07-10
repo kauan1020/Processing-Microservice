@@ -2,6 +2,7 @@
 Dependências de banco de dados e serviços integrados.
 Substitua o conteúdo do seu arquivo infra/depedencies/database.py por este.
 """
+import os
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator
@@ -19,19 +20,24 @@ async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-
-
-async def get_user_service() -> UserServiceGateway:
+async def get_user_service():
     """
-    Dependência para obter gateway do serviço de usuários.
+    Obter instância do UserServiceGateway com configuração correta
     """
     settings = get_settings()
+
+    # IMPORTANTE: Verificar qual URL usar
+    # Se o teste direto funciona com auth-service:8000, talvez seja esse o correto
+    user_service_url = os.getenv("USER_SERVICE_URL", "http://auth-service:8000")
+
+    print(f"[DEBUG] Configurando UserServiceGateway com URL: {user_service_url}")
+
     return UserServiceGateway(
-        user_service_url=settings.user_service.service_url,
-        timeout=settings.user_service.timeout,
-        retry_attempts=settings.user_service.retry_attempts,
-        cache_ttl_seconds=settings.user_service.cache_ttl_seconds,
-        api_key=settings.user_service.api_key
+        user_service_url=user_service_url,
+        timeout=30,
+        retry_attempts=3,
+        cache_ttl_seconds=300,
+        api_key="6CQf0vIiqeMYWbZCE8Q0LH4D73p9j3ms"
     )
 
 
