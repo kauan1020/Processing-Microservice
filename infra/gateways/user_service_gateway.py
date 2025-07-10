@@ -1,7 +1,6 @@
 import asyncio
 import aiohttp
 import logging
-import json
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
@@ -94,35 +93,17 @@ class UserServiceGateway:
             return cached_result
 
         try:
-            # CORREÇÃO: Verificar se a URL está correta
-            # A URL no teste direto usa auth-service, mas aqui usa user_service_url
             url = f"{self.user_service_url}/users/profile"
             params = {"user_id": user_id}
 
             self.logger.info(f"Fetching user info for {user_id} from {url}")
-            self.logger.debug(f"Full URL with params: {url}?user_id={user_id}")
 
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
-                # Adicionar headers se necessário
-                headers = {}
-                if self.api_key:
-                    headers["Authorization"] = f"Bearer {self.api_key}"
-
-                async with session.get(url, params=params, headers=headers) as response:
+                async with session.get(url, params=params) as response:
                     self.logger.info(f"User service response status: {response.status}")
 
-                    # Log do corpo da resposta para debug
-                    response_text = await response.text()
-                    self.logger.debug(f"Raw response: {response_text}")
-
                     if response.status == 200:
-                        try:
-                            response_data = json.loads(response_text)
-                        except json.JSONDecodeError as e:
-                            self.logger.error(f"Failed to parse JSON response: {e}")
-                            self.logger.error(f"Response text: {response_text}")
-                            return self._get_default_user_info(user_id)
-
+                        response_data = await response.json()
                         self.logger.info(f"User service response: {response_data}")
 
                         if response_data.get("success") and "data" in response_data:
@@ -148,19 +129,15 @@ class UserServiceGateway:
                         self.logger.warning(f"User {user_id} not found")
                         return self._get_default_user_info(user_id)
                     else:
+                        response_text = await response.text()
                         self.logger.warning(f"User service returned status {response.status}: {response_text}")
                         return self._get_default_user_info(user_id)
 
         except asyncio.TimeoutError:
             self.logger.warning(f"Timeout getting user info for {user_id}")
             return self._get_default_user_info(user_id)
-        except aiohttp.ClientError as e:
-            self.logger.error(f"HTTP Client error getting user info for {user_id}: {type(e).__name__}: {str(e)}")
-            return self._get_default_user_info(user_id)
         except Exception as e:
-            self.logger.error(f"Unexpected error getting user info for {user_id}: {type(e).__name__}: {str(e)}")
-            import traceback
-            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            self.logger.warning(f"Error getting user info for {user_id}: {str(e)}")
             return self._get_default_user_info(user_id)
 
     def _get_default_user_info(self, user_id: str) -> Dict[str, Any]:

@@ -1,7 +1,5 @@
 from pydantic_settings import BaseSettings
 from typing import List, Optional
-from pydantic import Field
-
 
 
 class DatabaseSettings(BaseSettings):
@@ -10,7 +8,7 @@ class DatabaseSettings(BaseSettings):
     port: int = 5432
     name: str = "video_processing"
     user: str = "postgres"
-    password: str = ""
+    password: str = "password"
     url: Optional[str] = None
     echo: bool = False
     pool_size: int = 10
@@ -76,7 +74,7 @@ class KafkaSettings(BaseSettings):
 class AuthSettings(BaseSettings):
     """Authentication service configuration settings for JWT token validation."""
     service_url: str = "http://localhost:8000"
-    api_key: str = ""
+    api_key: str = "dev-auth-key-123"
     validate_token_endpoint: str = "/auth/validate"
     user_info_endpoint: str = "/users/profile"
     retry_attempts: int = 3
@@ -91,7 +89,7 @@ class UserServiceSettings(BaseSettings):
     """User service configuration settings for user management and preferences."""
     service_url: str = "http://localhost:8000"
     timeout: int = 30
-    api_key: str = ""
+    api_key: str = "dev-user-service-key-123"
     retry_attempts: int = 3
     cache_ttl_seconds: int = 300
 
@@ -102,12 +100,12 @@ class UserServiceSettings(BaseSettings):
 class NotificationSettings(BaseSettings):
     """Notification service configuration settings for email notifications via Gmail."""
     service_url: str = "http://localhost:8003"
-    api_key: str = ""
-    gmail_email: str = ""
-    gmail_app_password: str = ""
-    from_email: str = ""
+    api_key: str = "dev-notification-key-123"
+    gmail_email: str = "kauan.silva@advolve.ai"
+    gmail_app_password: str = "fmzgjwyqgyrtxrxi"
+    from_email: str = "kauan.silva@advolve.ai"
     from_name: str = "FIAP X Video Processing"
-    admin_emails: str = ""
+    admin_emails: str = "kauan.silva@advolve.ai,support@fiapx.com"
     retry_attempts: int = 3
     timeout: int = 30
 
@@ -164,8 +162,8 @@ class Settings(BaseSettings):
     processing: ProcessingSettings = ProcessingSettings()
     storage: StorageSettings = StorageSettings()
     kafka: KafkaSettings = KafkaSettings()
-    auth: AuthSettings = Field(default_factory=AuthSettings)
-    user_service: UserServiceSettings = Field(default_factory=UserServiceSettings)
+    auth: AuthSettings = AuthSettings()
+    user_service: UserServiceSettings = UserServiceSettings()
     notification: NotificationSettings = NotificationSettings()
     cors: CorsSettings = CorsSettings()
 
@@ -178,7 +176,6 @@ class Settings(BaseSettings):
     class Config:
         env_prefix = "APP_"
         case_sensitive = False
-        extra = "ignore"
 
 
 def get_settings() -> Settings:

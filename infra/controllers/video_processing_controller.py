@@ -1,5 +1,4 @@
 from typing import Dict, Any
-import logging
 from fastapi import UploadFile, HTTPException, status
 
 from use_cases.video_processing.submit_video_use_case import (
@@ -222,12 +221,12 @@ class VideoProcessingController:
             status_enum = None
             if status_filter:
                 try:
-                    if isinstance(status_filter, JobStatus):
-                        status_enum = status_filter
-                    else:
-                        status_enum = JobStatus(status_filter.lower())
+                    status_enum = JobStatus(status_filter)
                 except ValueError:
-                    return self.presenter.present_validation_error(f"Invalid status filter: {status_filter}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=self.presenter.present_validation_error(f"Invalid status filter: {status_filter}")
+                    )
 
             request = ListUserJobsRequest(
                 user_id=user_id,
@@ -240,11 +239,11 @@ class VideoProcessingController:
 
             return self.presenter.present_user_jobs_list(response)
 
-        except HTTPException:
-            raise
         except Exception as e:
-            logging.error(f"Error in list_user_jobs: {type(e).__name__}: {str(e)}")
-            return self.presenter.present_internal_server_error(str(e))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=self.presenter.present_internal_server_error(str(e))
+            )
 
     async def download_processing_result(self, job_id: str, user_id: str, include_metadata: bool = False) -> Dict[
         str, Any]:

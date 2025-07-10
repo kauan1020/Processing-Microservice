@@ -1,6 +1,3 @@
-import logging
-import traceback
-
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Response, Header
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -48,7 +45,6 @@ async def get_auth_gateway():
 
     if _auth_gateway is None:
         settings = get_settings()
-        print("[DEBUG] Instantiating AuthGateway with:", settings.auth.model_dump())
         _auth_gateway = AuthGateway(
             auth_service_url=settings.auth.service_url,
             timeout=settings.auth.timeout
@@ -305,6 +301,55 @@ async def submit_video_for_processing(
         )
 
 
+@router.get("/jobs/{job_id}/progress")
+async def get_job_progress(
+        job_id: str,
+        controller: VideoProcessingController = Depends(get_video_processing_controller),
+        current_user_id: str = Depends(get_current_user_id)
+):
+    try:
+        user_service = await get_user_service()
+        user_exists = await user_service.verify_user_exists(current_user_id)
+        if not user_exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User {current_user_id} not found"
+            )
+
+        job_status = await controller.get_job_status(job_id, current_user_id)
+
+        if job_status["status"] not in ["processing"]:
+            return {
+                "job_id": job_id,
+                "status": job_status["status"],
+                "progress_percentage": 100 if job_status["status"] == "completed" else 0,
+                "current_stage": f"Job is {job_status['status']}",
+                "processing_active": False
+            }
+
+        progress_info = job_status.get("job_data", {}).get("metadata", {}).get("progress", {})
+
+        return {
+            "job_id": job_id,
+            "status": job_status["status"],
+            "progress_percentage": progress_info.get("percentage", 0),
+            "current_stage": progress_info.get("message", "Processing"),
+            "last_updated": progress_info.get("updated_at"),
+            "processing_active": True,
+            "started_at": job_status["job_data"].get("processing_started_at"),
+            "estimated_frames": job_status["job_data"].get("estimated_frames"),
+            "worker_id": job_status["job_data"].get("metadata", {}).get("worker_id")
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error retrieving job progress"
+        )
+
+
 @router.get("/jobs/{job_id}/status")
 async def get_job_status(
         job_id: str,
@@ -421,9 +466,21 @@ async def list_user_jobs(
                 detail=f"User {current_user_id} not found"
             )
 
+        from domain.entities.video_job import JobStatus
+
+        parsed_status_filter = None
+        if status_filter:
+            try:
+                parsed_status_filter = JobStatus(status_filter.lower())
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid status filter: {status_filter}"
+                )
+
         result = await controller.list_user_jobs(
             user_id=current_user_id,
-            status_filter=status_filter,
+            status_filter=parsed_status_filter,
             skip=skip,
             limit=min(limit, 100)
         )
@@ -445,6 +502,7 @@ async def list_user_jobs(
                 }
             }
         )
+
 
 @router.get("/jobs/{job_id}/download")
 async def download_processing_result(
@@ -668,6 +726,44 @@ async def delete_video_job(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during job deletion"
         )
+
+
+@router.get("/jobs/{job_id}/frames")
+async def list_extracted_frames(
+        job_id: str,
+        controller: VideoProcessingController = Depends(get_video_processing_controller),
+        current_user_id: str = Depends(get_current_user_id)
+):
+    try:
+        user_service = await get_user_service()
+        user_exists = await user_service.verify_user_exists(current_user_id)
+        if not user_exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User {current_user_id} not found"
+            )
+
+        job_status = await controller.get_job_status(job_id, current_user_id)
+
+        if not job_status.get("download_available"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Job is not completed or frames are not available"
+            )
+
+        frame_count = job_status["job_data"].get("frame_count", 0)
+        frame_names = [f"frame_{i:06d}.png" for i in range(1, frame_count + 1)]
+
+        return frame_names
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error listing extracted frames"
+        )
+
 
 @router.post("/jobs/{job_id}/cancel")
 async def cancel_processing_job(
