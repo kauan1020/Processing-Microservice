@@ -52,7 +52,7 @@ class StorageSettings(BaseSettings):
 
 class KafkaSettings(BaseSettings):
     """Kafka messaging configuration settings for job queue and event streaming."""
-    bootstrap_servers: str = "localhost:9092"
+    bootstrap_servers: str = "kafka-service:9092"
     security_protocol: str = "PLAINTEXT"
     sasl_mechanism: str = "PLAIN"
     sasl_username: str = ""
