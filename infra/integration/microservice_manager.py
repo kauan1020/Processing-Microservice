@@ -28,7 +28,7 @@ class UserServiceGateway:
         self.api_key = api_key
 
     async def verify_user_exists(self, user_id: str) -> bool:
-        response = await self.client.get(f"/users/profile/{user_id}")
+        response = await self.client.get(f"/users/profile?user_id={user_id}")
         return response.status_code == 200
 
     async def health_check(self) -> dict:
