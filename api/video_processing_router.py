@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Response, Header
 from fastapi.responses import FileResponse
@@ -413,39 +414,16 @@ async def list_user_jobs(
 ):
     try:
         user_service = await get_user_service()
-
-        # Log para debug
-        print(f"[DEBUG] Verificando usuário {current_user_id}...")
-
-        try:
-            user_exists = await user_service.verify_user_exists(current_user_id)
-        except Exception as e:
-            print(f"[ERROR] Erro ao verificar usuário: {type(e).__name__}: {str(e)}")
-            # Em caso de erro no serviço de usuário, assumir que o usuário existe
-            # para não bloquear a operação
-            user_exists = True
-
+        user_exists = await user_service.verify_user_exists(current_user_id)
         if not user_exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"User {current_user_id} not found"
             )
 
-        from domain.entities.video_job import JobStatus
-
-        parsed_status_filter = None
-        if status_filter:
-            try:
-                parsed_status_filter = JobStatus(status_filter.lower())
-            except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid status filter: {status_filter}"
-                )
-
         result = await controller.list_user_jobs(
             user_id=current_user_id,
-            status_filter=parsed_status_filter,
+            status_filter=status_filter,
             skip=skip,
             limit=min(limit, 100)
         )
@@ -455,11 +433,6 @@ async def list_user_jobs(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[ERROR] Erro não tratado em list_user_jobs: {type(e).__name__}: {str(e)}")
-        import traceback
-        print(f"[ERROR] Traceback: {traceback.format_exc()}")
-
-        # Retornar erro mais específico
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -472,7 +445,6 @@ async def list_user_jobs(
                 }
             }
         )
-
 
 @router.get("/jobs/{job_id}/download")
 async def download_processing_result(
