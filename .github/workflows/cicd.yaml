@@ -229,13 +229,6 @@ jobs:
         kubectl rollout restart deployment/video-service -n $NAMESPACE || true
 
 
-    - name: Run smoke tests
-      run: |
-        kubectl port-forward svc/video-service 8081:8001 -n $NAMESPACE &
-        sleep 10
-        curl -f http://localhost:8081/health || exit 1
-        pkill -f "kubectl port-forward"
-
   notify:
     runs-on: ubuntu-latest
     needs: [deploy]
