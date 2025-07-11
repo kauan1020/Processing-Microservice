@@ -49,7 +49,7 @@ O projeto segue Clean Architecture com separação clara de responsabilidades:
 - FFmpeg
 - Docker e Docker Compose (para ambiente de desenvolvimento)
 
-## Instalação
+## Subir a aplicação
 
 ### Ambiente Local
 
@@ -72,29 +72,16 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
-4. Configure as variáveis de ambiente:
+4. Crie a network:
 ```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
+docker network create fiap_x_shared_network
 ```
 
-5. Execute as migrações do banco:
+5Run:
 ```bash
-alembic upgrade head
+make run
 ```
-
-6. Inicie o serviço:
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Usando Docker
-
-1. Construa e execute os containers:
-```bash
-docker-compose up --build
-```
-
+Swagger estará em http://localhost:8001/docs
 ## Configuração
 
 ### Variáveis de Ambiente
