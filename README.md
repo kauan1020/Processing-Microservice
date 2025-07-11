@@ -56,7 +56,6 @@ O projeto segue Clean Architecture com separação clara de responsabilidades:
 1. Clone o repositório:
 ```bash
 git clone <repository-url>
-cd video-processing-microservice
 ```
 
 2. Crie um ambiente virtual:
