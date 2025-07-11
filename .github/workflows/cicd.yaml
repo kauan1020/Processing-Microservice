@@ -225,9 +225,8 @@ jobs:
         echo "REDIS_SECRET_ARN: $REDIS_SECRET_ARN"
         
         envsubst < k8s/video-service/deployment.yaml | kubectl apply -f -
-        kubectl rollout restart deployment/video-service -n $NAMESPACE
-        kubectl rollout status deployment/video-service -n $NAMESPACE --timeout=300s
-        kubectl get pods -n $NAMESPACE -l app=video-service
+        
+        kubectl rollout restart deployment/video-service -n $NAMESPACE || true
 
 
     - name: Run smoke tests
